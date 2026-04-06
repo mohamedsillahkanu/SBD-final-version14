@@ -86,145 +86,197 @@ if ('serviceWorker' in navigator) {
 // ============================================
 // PWA INSTALL PROMPT
 // ============================================
-// ── Inject fixed install banner ──────────────────────────────
-function injectInstallBanner() {
-    if (document.getElementById('pwaInstallBanner')) return;
-    const banner = document.createElement('div');
-    banner.id = 'pwaInstallBanner';
-    banner.innerHTML = `
-      <div id="pwaInstallContent" style="display:flex;align-items:center;gap:12px;pointer-events:all;">
-        <div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:2px solid rgba(200,153,26,.5);">
-          <img src="./icons/icon-192.png" style="width:36px;height:36px;object-fit:contain;"
-               onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\\'font-size:20px\\'>📲</span>'">
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.4px;">SBD 2026 — ITN Survey</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;">Install for offline use &amp; quick access</div>
-        </div>
-        <button id="pwaInstallBtn" onclick="pwaDoInstall()" style="
-          background:#c8991a;color:#fff;border:none;border-radius:8px;
-          padding:10px 20px;font-family:'Oswald',sans-serif;font-size:13px;
-          font-weight:700;letter-spacing:.5px;cursor:pointer;white-space:nowrap;
-          flex-shrink:0;transition:background .2s;
-          pointer-events:all;-webkit-tap-highlight-color:transparent;
-          touch-action:manipulation;">INSTALL</button>
-        <button id="pwaInstallClose" onclick="pwaCloseBanner()" style="
-          background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:6px;
-          min-width:32px;height:32px;cursor:pointer;font-size:18px;line-height:1;
-          display:flex;align-items:center;justify-content:center;flex-shrink:0;
-          pointer-events:all;-webkit-tap-highlight-color:transparent;
-          touch-action:manipulation;">✕</button>
-      </div>`;
+// ============================================
+// PWA INSTALL BANNER
+// ============================================
 
-    Object.assign(banner.style, {
-        position:       'fixed',
-        bottom:         '-120px',
-        left:           '50%',
-        transform:      'translateX(-50%)',
-        width:          'calc(100% - 24px)',
-        maxWidth:       '520px',
-        background:     'linear-gradient(135deg,#002952,#004080)',
-        borderRadius:   '14px',
-        padding:        '12px 14px',
-        boxShadow:      '0 -4px 40px rgba(0,0,0,.5), 0 8px 32px rgba(0,0,0,.4)',
-        border:         '1.5px solid rgba(200,153,26,.4)',
-        zIndex:         '2147483647',  // max possible z-index
-        transition:     'bottom .4s cubic-bezier(.34,1.56,.64,1)',
-        boxSizing:      'border-box',
-        pointerEvents:  'all',
-    });
-
-    document.body.appendChild(banner);
-}
-
-// Global functions called by onclick (avoids event delegation issues)
+// Declare globals FIRST — before any HTML onclick="" could fire them
 window.pwaDoInstall = async function() {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) { console.warn('[PWA] No prompt'); return; }
     const btn = document.getElementById('pwaInstallBtn');
-    if (btn) { btn.textContent = '…'; btn.disabled = true; }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    if (outcome === 'accepted') {
-        showInstallSuccess();
-    } else {
-        hideBanner();
+    if (btn) { btn.textContent = 'Installing…'; btn.disabled = true; }
+    try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') {
+            _pwaSuccess();
+        } else {
+            _pwaBannerHide();
+            if (btn) { btn.textContent = 'INSTALL'; btn.disabled = false; }
+        }
+    } catch(e) {
+        console.error('[PWA]', e);
         if (btn) { btn.textContent = 'INSTALL'; btn.disabled = false; }
     }
 };
+window.pwaCloseBanner = function() { _pwaBannerHide(); };
 
-window.pwaCloseBanner = function() {
-    hideBanner();
-};
-
-function showBanner() {
-    const banner = document.getElementById('pwaInstallBanner');
-    if (banner) setTimeout(() => { banner.style.bottom = '16px'; }, 100);
+function _pwaBannerShow() {
+    const b = document.getElementById('pwaInstallBanner');
+    if (b) setTimeout(() => { b.style.bottom = '16px'; }, 80);
 }
-
-function hideBanner() {
-    const banner = document.getElementById('pwaInstallBanner');
-    if (banner) banner.style.bottom = '-100px';
+function _pwaBannerHide() {
+    const b = document.getElementById('pwaInstallBanner');
+    if (b) b.style.bottom = '-120px';
 }
-
-function showInstallSuccess() {
-    const content = document.getElementById('pwaInstallContent');
-    if (!content) return;
-    content.innerHTML = `
-      <div style="width:36px;height:36px;background:#28a745;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>
+function _pwaSuccess() {
+    const c = document.getElementById('pwaInstallContent');
+    if (c) c.innerHTML = `
+      <div style="width:38px;height:38px;background:#28a745;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" width="22" height="22"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div style="flex:1;">
-        <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#fff;">App installed successfully!</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;">You can now use SBD 2026 offline</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:#fff;">Installed! Open from your home screen.</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">SBD 2026 works fully offline ✓</div>
       </div>`;
-    document.getElementById('pwaInstallBanner').style.border = '1.5px solid rgba(40,167,69,.6)';
-    setTimeout(hideBanner, 3000);
+    const b = document.getElementById('pwaInstallBanner');
+    if (b) b.style.border = '1.5px solid rgba(40,167,69,.7)';
+    setTimeout(_pwaBannerHide, 3500);
 }
-
-// ── Also update the existing installBtn in the nav (if present) ──
-function syncNavInstallBtn(show) {
+function _pwaSyncNavBtn(show) {
     const btn = document.getElementById('installBtn');
-    if (!btn) return;
-    btn.style.display = show ? 'inline-flex' : 'none';
-    if (show) {
-        btn.onclick = async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            if (outcome === 'accepted') showInstallSuccess();
-            btn.style.display = 'none';
-        };
-    }
+    if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+function _pwaInjectBanner() {
+    if (document.getElementById('pwaInstallBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'pwaInstallBanner';
+    // Use setAttribute for inline style — immune to CSS overrides
+    b.setAttribute('style',
+        'position:fixed;bottom:-120px;left:50%;transform:translateX(-50%);' +
+        'width:calc(100% - 24px);max-width:520px;' +
+        'background:linear-gradient(135deg,#002952,#004080);' +
+        'border-radius:14px;padding:13px 14px;' +
+        'box-shadow:0 -2px 30px rgba(0,0,0,.4),0 8px 30px rgba(0,0,0,.3);' +
+        'border:1.5px solid rgba(200,153,26,.45);' +
+        'z-index:2147483647;' +
+        'transition:bottom .4s cubic-bezier(.34,1.56,.64,1);' +
+        'box-sizing:border-box;pointer-events:all;'
+    );
+    b.innerHTML =
+        '<div id="pwaInstallContent" style="display:flex;align-items:center;gap:11px;pointer-events:all;">' +
+          '<div style="width:42px;height:42px;background:#fff;border-radius:10px;flex-shrink:0;' +
+               'overflow:hidden;display:flex;align-items:center;justify-content:center;' +
+               'border:2px solid rgba(200,153,26,.4);">' +
+            '<img src="./icons/icon-192.png" width="38" height="38" style="object-fit:contain;" ' +
+                 'onerror="this.parentElement.innerHTML='<span style=font-size:22px>📲</span>'">' +
+          '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:700;color:#fff;' +
+                 'letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+              'SBD 2026 — ITN Survey' +
+            '</div>' +
+            '<div style="font-size:11px;color:rgba(255,255,255,.72);margin-top:2px;">' +
+              'Install for offline use &amp; quick access' +
+            '</div>' +
+          '</div>' +
+          '<button id="pwaInstallBtn" ' +
+            'onclick="window.pwaDoInstall()" ' +
+            'style="background:#c8991a;color:#fff;border:none;border-radius:8px;' +
+                   'padding:10px 20px;font-family:Oswald,sans-serif;font-size:13px;' +
+                   'font-weight:700;letter-spacing:.6px;cursor:pointer;white-space:nowrap;' +
+                   'flex-shrink:0;pointer-events:all;' +
+                   '-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:manipulation;">' +
+            'INSTALL' +
+          '</button>' +
+          '<button ' +
+            'onclick="window.pwaCloseBanner()" ' +
+            'style="background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:6px;' +
+                   'min-width:32px;height:32px;cursor:pointer;font-size:18px;flex-shrink:0;' +
+                   'display:flex;align-items:center;justify-content:center;pointer-events:all;' +
+                   '-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:manipulation;">' +
+            '&#x2715;' +
+          '</button>' +
+        '</div>';
+    document.body.appendChild(b);
 }
 
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-
-    injectInstallBanner();
-    showBanner();
-    syncNavInstallBtn(true);
-    console.log('[PWA] Install prompt available');
+    // Update the existing HTML install button to show it's ready
+    const btn = document.getElementById('installBtn');
+    if (btn) {
+        btn.textContent = 'INSTALL';
+        btn.disabled    = false;
+        btn.style.background = '#28a745'; // green = ready to install
+    }
+    _pwaInjectBanner();
+    _pwaBannerShow();
+    console.log('[PWA] Install prompt ready — button active');
 });
 
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
-    showInstallSuccess();
-    syncNavInstallBtn(false);
-    console.log('[PWA] App installed');
+    _pwaSuccess();
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'none';
+    console.log('[PWA] Installed');
 });
 
 function setupInstallButton() {
-    // Banner handles everything — just hide the nav button by default
-    syncNavInstallBtn(false);
-    // If already installed as PWA, never show anything
+    const btn = document.getElementById('installBtn');
+    if (!btn) return;
+
+    // If already running as installed PWA, hide the banner entirely
     if (window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true) {
-        syncNavInstallBtn(false);
+        const banner = document.getElementById('installBanner');
+        if (banner) banner.style.display = 'none';
+        return;
     }
+
+    // Button is always visible — wire it up
+    btn.style.display = 'inline-flex';
+    btn.style.opacity = '1';
+    btn.style.cursor  = 'pointer';
+
+    btn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Browser is ready — trigger native install
+            btn.textContent = 'Installing…';
+            btn.disabled = true;
+            try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                if (outcome === 'accepted') {
+                    btn.textContent = '✓ Installed!';
+                    btn.style.background = '#28a745';
+                    setTimeout(() => {
+                        const banner = document.getElementById('installBanner');
+                        if (banner) banner.style.display = 'none';
+                    }, 2500);
+                } else {
+                    btn.textContent = 'INSTALL';
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                btn.textContent = 'INSTALL';
+                btn.disabled = false;
+            }
+        } else {
+            // Prompt not available — give clear instructions
+            const isAndroid = /android/i.test(navigator.userAgent);
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            let msg = 'To install:
+';
+            if (isIOS)         msg += 'Tap the Share button (□↑) → "Add to Home Screen"';
+            else if (isAndroid) msg += 'Tap the browser menu (⋮) → "Add to Home Screen" or "Install App"';
+            else                msg += 'Click the browser menu → "Install SBD 2026" or address bar install icon (⊕)';
+            alert(msg);
+        }
+    });
 }
+
+// Aliases for any legacy references
+function showBanner()        { _pwaBannerShow(); }
+function hideBanner()        { _pwaBannerHide(); }
+function showInstallSuccess(){ _pwaSuccess(); }
+function syncNavInstallBtn(s){ _pwaSyncNavBtn(s); }
+function injectInstallBanner(){ _pwaInjectBanner(); }
+
 
 // ============================================
 // APP UPDATE
